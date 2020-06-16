@@ -17,14 +17,15 @@
         "hyperf/cache": "~1.1.0",
         "hyperf/command": "~1.1.0",
         "hyperf/config": "~1.1.0",
-        "hyperf/db-connection": "~1.1.0",
+        "hyperf/db-connection": "^1.1",
         "hyperf/framework": "~1.1.0",
         "hyperf/guzzle": "~1.1.0",
         "hyperf/http-server": "~1.1.0",
         "hyperf/logger": "~1.1.0",
         "hyperf/memory": "~1.1.0",
         "hyperf/process": "~1.1.0",
-        "hyperf/redis": "~1.1.0"
+        "hyperf/redis": "~1.1.0",
+        "overtrue/wechat": "~4.0"
     },
     "require-dev": {
         "swoole/ide-helper": "^4.4",

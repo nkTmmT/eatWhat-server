@@ -12,16 +12,17 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-class IndexController extends AbstractController
+class IndexController extends BasicController
 {
+    
     public function index()
     {
-        $user = $this->request->input('user', 'Hyperf110');
+        $user = $this->request->input('user', 'Hyperf');
         $method = $this->request->getMethod();
-
-        return [
+        $data = [
             'method' => $method,
             'message' => "Hello {$user}.",
         ];
+        return $this->formatResponse(0, $data, 'hello world!');
     }
 }

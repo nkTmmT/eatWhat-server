@@ -36,19 +36,5 @@ abstract class AbstractController
      * @var ResponseInterface
      */
     protected $response;
-
-    /**
-     * @param int $code 请求结果码, 0为请求正常, 1为请求出错或异常
-     * @param array $data 返回的数据
-     * @param string $msg 请求结果信息,一般用于前端显示
-     * @return \Psr\Http\Message\ResponseInterface
-     */
-    public function response($code = 0, $data = [], $msg = 'ok!'){
-        $data = [
-            'code' => $code,
-            'data' => $data,
-            'msg' => $msg
-        ];
-        return $this->response->json($data);
-    }
+    
 }
