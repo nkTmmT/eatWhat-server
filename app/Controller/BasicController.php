@@ -14,19 +14,14 @@ use Hyperf\Di\Annotation\Inject;
 use Hyperf\Guzzle\ClientFactory;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
+use Hyperf\Utils\ApplicationContext;
+use Psr\SimpleCache\CacheInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 class BasicController
 {
-    /**
-     * @Inject()
-     * @var RequestInterface
-     */
     protected $request;
     
-    /**
-     * @Inject()
-     * @var ResponseInterface
-     */
     protected $response;
     
     /**
@@ -35,11 +30,30 @@ class BasicController
      */
     protected $clientFactory;
     
+    /**
+     * @Inject()
+     * @var CacheInterface
+     */
+    protected $cache;
+    
+    /**
+     * @var \EasyWeChat\MiniProgram\Application
+     */
     protected $miniProgram;
     
-    public function __construct(ConfigInterface $config)
+    public function __construct(ConfigInterface $config, RequestInterface $request, ResponseInterface $response)
     {
+        $this->request = $request;
+        $this->response = $response;
+        $get = $this->request->getQueryParams();
+        $post = $this->request->getParsedBody();
+        $cookie = $this->request->getCookieParams();
+        $files = $this->request->getUploadedFiles();
+        $server = $this->request->getServerParams();
+        $xml = $this->request->getBody()->getContents();
         $this->miniProgram = Factory::miniProgram($config->get('wechat.miniProgram'));
+        $this->miniProgram['cache'] = ApplicationContext::getContainer()->get(CacheInterface::class);//EasyWeChat 默认使用 文件缓存，替换为 Redis 缓
+        $this->miniProgram['request'] = new Request($get,$post,[],$cookie,$files,$server,$xml);
     }
     
     /**
