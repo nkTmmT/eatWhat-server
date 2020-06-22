@@ -8,6 +8,7 @@
  */
 
 namespace App\Controller;
+use App\Model\User;
 use EasyWeChat\Factory;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Di\Annotation\Inject;
@@ -16,6 +17,7 @@ use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\Utils\ApplicationContext;
 use Psr\SimpleCache\CacheInterface;
+use Swoole\Exception;
 use Symfony\Component\HttpFoundation\Request;
 
 class BasicController
@@ -62,6 +64,7 @@ class BasicController
      * @param array $requestOptions
      * @param array $clientOptions
      * @return array|mixed|null
+     * @throws
      */
     public function sendHttpRequest($url, $method = 'GET', $requestOptions = [], $clientOptions = [])
     {
@@ -69,6 +72,32 @@ class BasicController
         $response = $client->request($method, $url, $requestOptions);
         return $response->getBody()->getMetadata();
     }
+    
+    /**
+     * @return mixed
+     * @throws Exception
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    public function getTokenCache()
+    {
+        $cacheInfo = $this->cache->get($this->request->query('access_token', ''), null);
+        if (empty($cacheInfo)){
+            throw new Exception();
+        }
+        return $cacheInfo;
+    }
+    
+    /**
+     * @return User | null
+     * @throws Exception
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    public function getUser()
+    {
+        $cacheInfo = $this->getTokenCache();
+        return User::query()->find($cacheInfo['user_id']);
+    }
+    
     /**
      * @param int $code 请求结果码, 0为请求正常, 1为请求出错或异常
      * @param array $data 返回的数据

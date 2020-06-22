@@ -57,6 +57,7 @@ class AuthTokenMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+//        var_dump($request);
         $pathInfo = $this->request->getPathInfo();
         if (in_array($pathInfo, $this->exceptRoute)){
             return $handler->handle($request);

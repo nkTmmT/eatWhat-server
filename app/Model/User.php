@@ -3,6 +3,7 @@
 declare (strict_types=1);
 namespace App\Model;
 
+use Hyperf\Database\Model\Builder;
 use Hyperf\DbConnection\Model\Model;
 /**
  * @property int $id 
@@ -16,6 +17,8 @@ use Hyperf\DbConnection\Model\Model;
  * @property \Carbon\Carbon $updated_at 
  * @property string $openid 
  * @property string $unionid 
+ * @property Builder $userCollect
+ * @property Builder $userAte
  */
 class User extends Model
 {
@@ -43,4 +46,22 @@ class User extends Model
      * @var array
      */
     protected $casts = ['id' => 'integer', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
+    
+    /**
+     * 用户收藏的食物
+     * @return \Hyperf\Database\Model\Relations\HasMany
+     */
+    public function userCollect()
+    {
+        return $this->hasMany(UserCollect::class, 'user_id', 'id');
+    }
+    
+    /**
+     * 用户吃过的食物
+     * @return \Hyperf\Database\Model\Relations\HasMany
+     */
+    public function userAte()
+    {
+        return $this->hasMany(UserAte::class, 'user_id', 'id');
+    }
 }
