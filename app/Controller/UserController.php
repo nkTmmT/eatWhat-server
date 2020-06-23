@@ -14,7 +14,6 @@ use App\Model\User;
 use App\Model\UserAnli;
 use App\Model\UserAte;
 use App\Model\UserCollect;
-use Hyperf\Contract\ConfigInterface;
 use Hyperf\Di\Aop\ProceedingJoinPoint;
 use Hyperf\HttpServer\Annotation\Controller;
 use Hyperf\HttpServer\Annotation\GetMapping;
@@ -186,10 +185,10 @@ class UserController extends BasicController
         if (!$this->request->hasFile('image')) {
             return $this->formatResponse(1, [], '请上传主图!');
         }
-        if (!$this->request->file('image')->isValid()) {
+        $file = $this->request->file('image');
+        if (!$file->isValid()) {
             return $this->formatResponse(1, [], '您上传的图片无效!');
         }
-        $file = $this->request->file('image');
         $fileName = $file->getBasename();//临时原文件名
         $extension = $file->getExtension();//原文件名的后缀名
         $path = DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.date('Ymd').md5($fileName).'.'.$extension;

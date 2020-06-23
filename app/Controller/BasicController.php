@@ -15,9 +15,9 @@ use Hyperf\Di\Annotation\Inject;
 use Hyperf\Guzzle\ClientFactory;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
-use Hyperf\Utils\ApplicationContext;
 use Psr\SimpleCache\CacheInterface;
 use Swoole\Exception;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 
 class BasicController
@@ -33,7 +33,6 @@ class BasicController
     protected $clientFactory;
     
     /**
-     * @Inject()
      * @var CacheInterface
      */
     protected $cache;
@@ -43,19 +42,28 @@ class BasicController
      */
     protected $miniProgram;
     
-    public function __construct(ConfigInterface $config, RequestInterface $request, ResponseInterface $response)
+    public function __construct(ConfigInterface $config, RequestInterface $request, ResponseInterface $response, CacheInterface $cache)
     {
         $this->request = $request;
         $this->response = $response;
+        $this->cache = $cache;
         $get = $this->request->getQueryParams();
         $post = $this->request->getParsedBody();
         $cookie = $this->request->getCookieParams();
-        $files = $this->request->getUploadedFiles();
+        /**
+         * @var \Hyperf\HttpMessage\Upload\UploadedFile [] $files
+         */
+        $files = $this->request->getUploadedFiles();//Hyperf\HttpMessage\Upload\UploadedFile[]
+        $castUploadFiles = [];
+        foreach ($files as $file){ //由于easyWechat 用的上传文件类型为Symfony\Component\HttpFoundation\File\UploadedFile,需要进行转换
+            //在思否上进行分享该方法
+            $castUploadFiles[] = new UploadedFile($file->getRealPath(), $file->getBasename(), $file->getMimeType(), $file->getError());
+        }
         $server = $this->request->getServerParams();
         $xml = $this->request->getBody()->getContents();
         $this->miniProgram = Factory::miniProgram($config->get('wechat.miniProgram'));
-        $this->miniProgram['cache'] = ApplicationContext::getContainer()->get(CacheInterface::class);//EasyWeChat 默认使用 文件缓存，替换为 Redis 缓
-        $this->miniProgram['request'] = new Request($get,$post,[],$cookie,$files,$server,$xml);
+        $this->miniProgram['cache'] = $cache;//EasyWeChat 默认使用 文件缓存，替换为 Redis 缓存
+        $this->miniProgram['request'] = new Request($get,$post,[],$cookie,$castUploadFiles,$server,$xml);
     }
     
     /**
