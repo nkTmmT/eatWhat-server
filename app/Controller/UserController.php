@@ -169,14 +169,12 @@ class UserController extends BasicController
     
     /**
      * @PostMapping(path="anli")
-     * @param ConfigInterface $config
      * @return array
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \Swoole\Exception
      */
-    public function anli(ConfigInterface $config)
+    public function anli()
     {
-        $documentRoot = $config->get('server.settings.document_root');
         $name = $this->request->post('name', '');
         if (empty($name)){
             return $this->formatResponse(1, [], '请输入推荐食物的名字!');
@@ -194,14 +192,13 @@ class UserController extends BasicController
         $file = $this->request->file('image');
         $fileName = $file->getBasename();//临时原文件名
         $extension = $file->getExtension();//原文件名的后缀名
-        $url = $documentRoot.DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.date('Ymd').md5($fileName).'.'.$extension;
-        $path = $documentRoot.$url;
+        $path = DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.date('Ymd').md5($fileName).'.'.$extension;
         $file->moveTo($path);//保存到服务器地址
         // 通过 isMoved(): bool 方法判断方法是否已移动
         if (!$file->isMoved()) {//保存文件出错,记录日志,linux常见问题为文件读写权限不够
             return $this->formatResponse(1, [], '安利失败!');
         }
-        $image = 'https://'.$this->request->header('host', 'www.tmmt.online').str_replace(DIRECTORY_SEPARATOR, '/', $url);
+        $image = 'https://'.$this->request->header('host', 'www.tmmt.online').str_replace(DIRECTORY_SEPARATOR, '/', $path);
         $anli = new UserAnli();
         $anli->name = $name;
         $anli->reason = $reason;
