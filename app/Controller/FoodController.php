@@ -9,13 +9,11 @@
 
 namespace App\Controller;
 
-use App\Model\FoodInfo;
 use App\Model\UserAte;
 use App\Model\UserCollect;
 use Hyperf\HttpServer\Annotation\Controller;
 use Hyperf\HttpServer\Annotation\GetMapping;
 use Hyperf\HttpServer\Annotation\PostMapping;
-use Hyperf\Utils\Codec\Json;
 
 /**
  * Class FoodController

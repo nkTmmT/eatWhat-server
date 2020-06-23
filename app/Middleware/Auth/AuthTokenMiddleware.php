@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware\Auth;
 
+use Hyperf\Contract\ConfigInterface;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
@@ -57,7 +58,6 @@ class AuthTokenMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-//        var_dump($request);
         $pathInfo = $this->request->getPathInfo();
         if (in_array($pathInfo, $this->exceptRoute)){
             return $handler->handle($request);
@@ -82,7 +82,6 @@ class AuthTokenMiddleware implements MiddlewareInterface
                 ]
             );
         }
-        
         return $handler->handle($request);
     }
 }

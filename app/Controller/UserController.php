@@ -15,19 +15,22 @@ use App\Model\UserAnli;
 use App\Model\UserAte;
 use App\Model\UserCollect;
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\Di\Aop\ProceedingJoinPoint;
 use Hyperf\HttpServer\Annotation\Controller;
 use Hyperf\HttpServer\Annotation\GetMapping;
 use Hyperf\HttpServer\Annotation\PostMapping;
-use Hyperf\HttpServer\Annotation\RequestMapping;
+use Hyperf\RateLimit\Annotation\RateLimit;
 
 /**
  * Class UserController
  * @Controller(prefix="user")
+ * @RateLimit(limitCallback={UserController::class, "limitCallback"})
  */
 class UserController extends BasicController
 {
     /**
      * @PostMapping(path="login")
+     * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
      * @return array
      */
     public function login()
@@ -73,17 +76,11 @@ class UserController extends BasicController
     
     /**
      * @PostMapping(path="info")
+     * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
      * @return array
      */
     public function info()
     {
-        /*
-         *  userInfo	UserInfo	用户信息对象，不包含 openid 等敏感信息
-            rawData	string	不包括敏感信息的原始数据字符串，用于计算签名
-            signature	string	使用 sha1( rawData + sessionkey ) 得到字符串，用于校验用户信息，详见 用户数据的签名验证和加解密
-            encryptedData	string	包括敏感数据在内的完整用户信息的加密数据，详见 用户数据的签名验证和加解密
-            iv	string	加密算法的初始向量，详见 用户数据的签名验证和加解密
-         */
         $info = $this->request->post('info', []);
         if (empty($info)){
             return $this->formatResponse(1, [], '加密的信息为空');
@@ -111,9 +108,12 @@ class UserController extends BasicController
         }
         return $this->formatResponse(0, [], '用户信息保存成功!');
     }
+    
     /**
      * @GetMapping(path="my-collect")
      * @return array
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws \Swoole\Exception
      */
     public function myCollect()
     {
@@ -135,25 +135,14 @@ class UserController extends BasicController
                 'collect' => true
             ];
         }
-//        $result = [
-//            [
-//                'id' => 1,
-//                'name' => '麻辣香锅',
-//                'image' => '',
-//                'collect' => true
-//            ],[
-//                'id' => 2,
-//                'name' => '螺蛳粉',
-//                'image' => '',
-//                'collect' => false
-//            ],
-//        ];
         return $this->formatResponse(0, $result, '获取成功!');
     }
     
     /**
      * @GetMapping(path="my-ate")
      * @return array
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws \Swoole\Exception
      */
     public function myAte()
     {
@@ -175,29 +164,19 @@ class UserController extends BasicController
                 'collect' => $item->isCollect()
             ];
         }
-//        $result = [
-//            [
-//                'id' => 1,
-//                'name' => '麻辣香锅',
-//                'image' => '',
-//                'collect' => true
-//            ],[
-//                'id' => 2,
-//                'name' => '螺蛳粉',
-//                'image' => '',
-//                'collect' => false
-//            ],
-//        ];
         return $this->formatResponse(0, $result, '获取成功!');
     }
     
     /**
-     * @RequestMapping(path="anli")
+     * @PostMapping(path="anli")
+     * @param ConfigInterface $config
+     * @return array
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws \Swoole\Exception
      */
     public function anli(ConfigInterface $config)
     {
         $documentRoot = $config->get('server.settings.document_root');
-//        $files = $this->request->getUploadedFiles();
         $name = $this->request->post('name', '');
         if (empty($name)){
             return $this->formatResponse(1, [], '请输入推荐食物的名字!');
@@ -213,14 +192,14 @@ class UserController extends BasicController
             return $this->formatResponse(1, [], '您上传的图片无效!');
         }
         $file = $this->request->file('image');
-        $name = $file->getBasename();//原文件名的后缀名
+        $fileName = $file->getBasename();//临时原文件名
         $extension = $file->getExtension();//原文件名的后缀名
-        $url = DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.date('Ymd').DIRECTORY_SEPARATOR.md5($name).'.'.$extension;
+        $url = $documentRoot.DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.date('Ymd').md5($fileName).'.'.$extension;
         $path = $documentRoot.$url;
         $file->moveTo($path);//保存到服务器地址
         // 通过 isMoved(): bool 方法判断方法是否已移动
         if (!$file->isMoved()) {//保存文件出错,记录日志,linux常见问题为文件读写权限不够
-            echo '文件保存路径为'.$path;
+            return $this->formatResponse(1, [], '安利失败!');
         }
         $image = 'https://'.$this->request->header('host', 'www.tmmt.online').str_replace(DIRECTORY_SEPARATOR, '/', $url);
         $anli = new UserAnli();
@@ -229,8 +208,17 @@ class UserController extends BasicController
         $anli->image = $image;
         $anli->reference_id = $this->getUser()->id;
         if (!$anli->save()){//保存数据库出错,记录日志
-        
+            return $this->formatResponse(1, [], '安利失败!');
         }
         return $this->formatResponse(0, [], '安利成功!');
+    }
+    
+    public static function limitCallback(float $seconds, ProceedingJoinPoint $proceedingJoinPoint)
+    {
+        // 记录触发限流了
+        // $seconds 下次生成Token 的间隔, 单位为秒
+        // $proceedingJoinPoint 此次请求执行的切入点
+        // 可以通过调用 `$proceedingJoinPoint->process()` 继续执行或者自行处理
+        return $proceedingJoinPoint->process();
     }
 }
