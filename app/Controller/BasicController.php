@@ -22,9 +22,20 @@ use Symfony\Component\HttpFoundation\Request;
 
 class BasicController
 {
+    /**
+     * @var RequestInterface
+     */
     protected $request;
     
+    /**
+     * @var ResponseInterface
+     */
     protected $response;
+    
+    /**
+     * @var ConfigInterface
+     */
+    protected $config;
     
     /**
      * @Inject()
@@ -46,6 +57,7 @@ class BasicController
     {
         $this->request = $request;
         $this->response = $response;
+        $this->config = $config;
         $this->cache = $cache;
         $get = $this->request->getQueryParams();
         $post = $this->request->getParsedBody();
