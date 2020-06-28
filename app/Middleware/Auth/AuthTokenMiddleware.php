@@ -47,7 +47,8 @@ class AuthTokenMiddleware implements MiddlewareInterface
      * @var array 不需要检查access_token参数的地址
      */
     private $exceptRoute = [
-        '/user/login'
+        '/user/login',
+        '/'
     ];
 
     public function __construct(ContainerInterface $container)

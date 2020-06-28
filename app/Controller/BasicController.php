@@ -108,6 +108,7 @@ class BasicController
     }
     
     /**
+     * 获取当前请求对应的用户
      * @return User | null
      * @throws Exception
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -115,7 +116,7 @@ class BasicController
     public function getUser()
     {
         $cacheInfo = $this->getTokenCache();
-        return User::query()->find($cacheInfo['user_id']);
+        return User::findFromCache($cacheInfo['user_id']);
     }
     
     /**

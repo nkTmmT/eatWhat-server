@@ -4,6 +4,8 @@ declare (strict_types=1);
 namespace App\Model;
 
 use Hyperf\DbConnection\Model\Model;
+use Hyperf\ModelCache\Cacheable;
+
 /**
  * @property int $id 
  * @property string $name 
@@ -15,6 +17,7 @@ use Hyperf\DbConnection\Model\Model;
  */
 class FoodInfo extends Model
 {
+    use Cacheable;
     /**
      * The table associated with the model.
      *

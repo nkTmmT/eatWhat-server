@@ -5,6 +5,8 @@ namespace App\Model;
 
 use Hyperf\Database\Model\Builder;
 use Hyperf\DbConnection\Model\Model;
+use Hyperf\ModelCache\Cacheable;
+
 /**
  * @property int $id 
  * @property string $username 
@@ -22,6 +24,7 @@ use Hyperf\DbConnection\Model\Model;
  */
 class User extends Model
 {
+    use Cacheable;
     /**
      * The table associated with the model.
      *

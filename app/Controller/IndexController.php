@@ -17,12 +17,6 @@ class IndexController extends BasicController
     
     public function index()
     {
-        $user = $this->request->input('user', 'Hyperf');
-        $method = $this->request->getMethod();
-        $data = [
-            'method' => $method,
-            'message' => "Hello {$user}.",
-        ];
-        return $this->formatResponse(0, $data, 'hello world!');
+        return 'hello world! hello swoole! hello hyperf!';
     }
 }

@@ -110,6 +110,7 @@ class UserController extends BasicController
     
     /**
      * @GetMapping(path="my-collect")
+     * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \Swoole\Exception
@@ -120,17 +121,19 @@ class UserController extends BasicController
         /**
          * @var $collection UserCollect[]
          */
-        $collection = $user->userCollect()->orderBy('created_at', 'desc')->limit(7)->get();//最多只显示七条记录
+        //最多只显示七条记录,load提前加载关系,避免n+1问题, load方法会将id转换为字符进行in查询(会导致索引失效)
+        $collection = $user->userCollect()->orderBy('updated_at', 'desc')->limit(7)->get()->load('foodInfo');
         $result = [];
         foreach ($collection as $item){
             /**
              * @var FoodInfo $foodInfo
              */
-            $foodInfo = $item->foodInfo()->first();
+            $foodInfo = $item->foodInfo;
             $result[] = [
                 'id' => $foodInfo->id,
                 'name' => $foodInfo->name,
                 'image' => $foodInfo->image,
+                'reason' => $foodInfo->reason,
                 'collect' => true
             ];
         }
@@ -139,6 +142,7 @@ class UserController extends BasicController
     
     /**
      * @GetMapping(path="my-ate")
+     * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \Swoole\Exception
@@ -149,17 +153,19 @@ class UserController extends BasicController
         /**
          * @var $ate UserAte[]
          */
-        $ate = $user->userAte()->orderBy('created_at', 'desc')->limit(7)->get();//最多只显示七条记录
+        //最多只显示七条记录,load提前加载关系,避免n+1问题, load方法会将id转换为字符进行in查询(会导致索引失效)
+        $ate = $user->userAte()->orderBy('created_at', 'desc')->limit(7)->get()->load('foodInfo');
         $result = [];
         foreach ($ate as $item){
             /**
              * @var FoodInfo $foodInfo
              */
-            $foodInfo = $item->foodInfo()->first();
+            $foodInfo = $item->foodInfo;
             $result[] = [
                 'id' => $foodInfo->id,
                 'name' => $foodInfo->name,
                 'image' => $foodInfo->image,
+                'reason' => $foodInfo->reason,
                 'collect' => $item->isCollect()
             ];
         }
@@ -167,8 +173,12 @@ class UserController extends BasicController
     }
     
     /**
+     * 安利美食
      * @PostMapping(path="anli")
+     * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
      * @return array
+     * @throws \EasyWeChat\Kernel\Exceptions\InvalidConfigException
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \Swoole\Exception
      */
@@ -190,6 +200,14 @@ class UserController extends BasicController
         if (!$file->isValid()) {
             return $this->formatResponse(1, [], '您上传的图片无效!');
         }
+        $textResult = $this->miniProgram->content_security->checkText($name.'----'.$reason);//文本安全内容检测
+        if (!empty($textResult['errcode'])){//说明验证失败了
+            return $this->formatResponse(1, [], '您上传的文字内容包含未允许信息!');
+        }
+        $imageResult = $this->miniProgram->content_security->checkImage($file->getRealPath()); //图片安全内容检测
+        if (!empty($imageResult['errcode'])){//说明验证失败了
+            return $this->formatResponse(1, [], '您上传的图片包含敏感信息!');
+        }
         $fileName = $file->getBasename();//临时原文件名
         $extension = $file->getExtension();//原文件名的后缀名
         $url = DIRECTORY_SEPARATOR.'foodimg'.DIRECTORY_SEPARATOR.md5(date('YmdHis').$fileName).'.'.$extension;
@@ -199,7 +217,7 @@ class UserController extends BasicController
         if (!$file->isMoved()) {//保存文件出错,记录日志,linux常见问题为文件读写权限不够
             return $this->formatResponse(1, [], '安利失败!');
         }
-        $image = 'https://'.$this->request->header('host', 'www.tmmt.online').str_replace(DIRECTORY_SEPARATOR, '/', $url);
+        $image = str_replace(DIRECTORY_SEPARATOR, '/', $url);
         $anli = new UserAnli();
         $anli->name = $name;
         $anli->reason = $reason;

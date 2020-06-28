@@ -19,6 +19,8 @@ return [
     'app_env' => env('APP_ENV', 'dev'),
     // 是否使用注解扫描缓存
     'scan_cacheable' => env('SCAN_CACHEABLE', false),
+    //默认主机host域名
+    'host' => 'www.tmmt.online',
     StdoutLoggerInterface::class => [
         'log_level' => [
             LogLevel::ALERT,
