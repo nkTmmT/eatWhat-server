@@ -29,8 +29,10 @@ class UserController extends BasicController
 {
     /**
      * @PostMapping(path="login")
-     * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
+     * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
+     * @throws \EasyWeChat\Kernel\Exceptions\InvalidConfigException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function login()
     {
@@ -39,44 +41,40 @@ class UserController extends BasicController
         if (empty($code)){
             return $this->formatResponse(1, [], $msg.'code为空');
         }
-        try{
-            $apiResult = $this->miniProgram->auth->session($code);
-            if (!empty($apiResult) && empty($apiResult['errcode'])){//登陆成功
-                $openid = $apiResult['openid'] ?? '';
-                $unionid = $apiResult['unionid'] ?? '';
-                $sessionKey = $apiResult['session_key'] ?? '';
-                $accessToken = md5(password_hash($sessionKey, PASSWORD_DEFAULT));//随机生成token
-                $user = User::query()->where('openid', $openid)->first();
-                //如果该用户为新用户(即数据库不存在)则新建user记录
-                if (!$user){
-                    $user = User::firstOrCreate(
-                        ['openid' => $openid],
-                        ['openid' => $openid, 'unionid' => $unionid]
-                    );
-                    if (!$user){
-                        return $this->formatResponse(1, [], $msg.'数据库保存数据出错!');
-                    }
-                }
-                $this->cache->set($accessToken, array_merge($apiResult, ['user_id' => $user->id]), 24*60*60);//保存在缓存中
-                $result = [
-                    'accessToken' => $accessToken,
-                ];
-                return $this->formatResponse(0, $result, '登陆成功!');
-            }else{
-                $msg = $apiResult['errmsg'];
+        $apiResult = $this->miniProgram->auth->session($code);
+        if (!empty($apiResult) && empty($apiResult['errcode'])){//登陆成功
+            $openid = $apiResult['openid'] ?? '';
+            $unionid = $apiResult['unionid'] ?? '';
+            $sessionKey = $apiResult['session_key'] ?? '';
+            $accessToken = md5(password_hash($sessionKey, PASSWORD_DEFAULT));//随机生成token
+            /**
+             * @var $user User
+             */
+            $user = User::updateOrCreate(
+                ['openid' => $openid],
+                ['openid' => $openid, 'unionid' => $unionid]
+            );
+            if (!$user){
+                return $this->formatResponse(1, [], $msg.'数据库保存数据出错!');
             }
-        }catch (\Throwable $throwable){
-            $msg .= '系统异常,'.$throwable->getMessage();
-        }catch (\Psr\SimpleCache\InvalidArgumentException $exception){ //缓存异常,会导致所有需要token的接口访问异常
-            $msg .= '缓存异常,'.$exception->getMessage();
+            $this->cache->set($accessToken, array_merge($apiResult, ['user_id' => $user->id]), 24*60*60);//保存在缓存中
+            $result = [
+                'accessToken' => $accessToken,
+                'hasInfo' => !empty($user->username) ? true : false
+            ];
+            return $this->formatResponse(0, $result, '登陆成功!');
+        }else{
+            $msg = $apiResult['errmsg'];
         }
         return $this->formatResponse(1, [], $msg);
     }
     
     /**
      * @PostMapping(path="info")
-     * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
+     * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws \Exception
      */
     public function info()
     {
@@ -84,18 +82,8 @@ class UserController extends BasicController
         if (empty($info)){
             return $this->formatResponse(1, [], '加密的信息为空');
         }
-        $accessToken = $this->request->query('access_token', '');
-        try{
-            $cacheInfo = $this->cache->get($accessToken);
-        }catch (\Psr\SimpleCache\InvalidArgumentException $exception){
-            return $this->formatResponse(1, [], '缓存系统出错!');
-        }
         $userInfo = $info['userInfo'];
-        /**
-         * 更新用户信息
-         * @var $user User
-         */
-        $user = User::query()->where('openid', $cacheInfo['openid'])->first();
+        $user = $this->getUser();
         $user->avatar_url = $userInfo['avatarUrl'];
         $user->city = $userInfo['city'];
         $user->province = $userInfo['province'];

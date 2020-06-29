@@ -32,6 +32,7 @@ class FoodController extends BasicController
      * @var $config ConfigInterface
      * @return array
      * @throws \Exception
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function food(ConfigInterface $config){
         $foodTotalNum = $this->cache->get(RedisKey::FOOD_NUM, 0);

@@ -94,15 +94,14 @@ class BasicController
     }
     
     /**
-     * @return mixed
-     * @throws Exception
+     * @return array | null
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getTokenCache()
     {
         $cacheInfo = $this->cache->get($this->request->query('access_token', ''), null);
         if (empty($cacheInfo)){
-            throw new Exception();
+            return null;
         }
         return $cacheInfo;
     }
@@ -116,6 +115,9 @@ class BasicController
     public function getUser()
     {
         $cacheInfo = $this->getTokenCache();
+        if (empty($cacheInfo)){
+            return null;
+        }
         return User::findFromCache($cacheInfo['user_id']);
     }
     
