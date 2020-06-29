@@ -90,7 +90,7 @@ class UserController extends BasicController
         $user->country = $userInfo['country'];
         $user->gender = $userInfo['gender'];
         $user->username = $userInfo['nickName'];
-        if (!$user->save()){
+        if (!empty($user->getDirty()) && !$user->save()){ //如果字段没有修改则不需要更新
             return $this->formatResponse(1, [], '数据库保存数据出错!');
         }
         return $this->formatResponse(0, [], '用户信息保存成功!');
