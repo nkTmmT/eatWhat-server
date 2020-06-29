@@ -70,6 +70,7 @@ class UserController extends BasicController
     }
     
     /**
+     * 保存用户的开放信息
      * @PostMapping(path="info")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
@@ -78,11 +79,10 @@ class UserController extends BasicController
      */
     public function info()
     {
-        $info = $this->request->post('info', []);
-        if (empty($info)){
-            return $this->formatResponse(1, [], '加密的信息为空');
+        $userInfo = $this->request->post('userInfo', []);
+        if (empty($userInfo)){
+            return $this->formatResponse(1, [], '用户信息为空');
         }
-        $userInfo = $info['userInfo'];
         $user = $this->getUser();
         $user->avatar_url = $userInfo['avatarUrl'];
         $user->city = $userInfo['city'];
@@ -188,6 +188,10 @@ class UserController extends BasicController
         if (!$file->isValid()) {
             return $this->formatResponse(1, [], '您上传的图片无效!');
         }
+        $user = $this->getUser();
+        if (empty($user->username)){
+            return $this->formatResponse(1, [], '您没有权限!');
+        }
         $textResult = $this->miniProgram->content_security->checkText($name.'----'.$reason);//文本安全内容检测
         if (!empty($textResult['errcode'])){//说明验证失败了
             return $this->formatResponse(1, [], '您上传的文字内容包含未允许信息!');
@@ -210,7 +214,7 @@ class UserController extends BasicController
         $anli->name = $name;
         $anli->reason = $reason;
         $anli->image = $image;
-        $anli->reference_id = $this->getUser()->id;
+        $anli->reference_id = $user->id;
         if (!$anli->save()){//保存数据库出错,记录日志
             return $this->formatResponse(1, [], '安利失败!');
         }
