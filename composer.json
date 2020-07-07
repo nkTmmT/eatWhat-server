@@ -34,7 +34,8 @@
         "overtrue/wechat": "~4.0",
         "hyperf/rate-limit": "~2.0",
         "hyperf/http-message": "2.0.x-dev",
-        "hyperf/event": "^2.0"
+        "hyperf/event": "^2.0",
+        "hyperf/validation": "^2.0"
     },
     "require-dev": {
         "swoole/ide-helper": "^4.4",

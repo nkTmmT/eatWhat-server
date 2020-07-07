@@ -9,6 +9,7 @@
 
 namespace App\Controller;
 
+use App\annotation\ParamsAnnotation;
 use App\Constants\RedisKey;
 use App\Model\FoodInfo;
 use App\Model\UserAte;
@@ -60,6 +61,7 @@ class FoodController extends BasicController
     
     /**
      * 收藏食物信息
+     * @ParamsAnnotation(rules={"id":"required|numeric"}, attributes={"id":"食物id"})
      * @PostMapping(path="collect")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -86,6 +88,7 @@ class FoodController extends BasicController
     
     /**
      * 记录吃过的食物
+     * @ParamsAnnotation(rules={"id":"required|numeric", "type":"required|numeric|between:1,3"}, attributes={"id":"食物id", "type":"类型"})
      * @PostMapping(path="ate")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array

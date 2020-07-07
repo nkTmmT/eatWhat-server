@@ -9,12 +9,12 @@
 
 namespace App\Controller;
 
+use App\annotation\ParamsAnnotation;
 use App\Model\FoodInfo;
 use App\Model\User;
 use App\Model\UserAnli;
 use App\Model\UserAte;
 use App\Model\UserCollect;
-use Hyperf\Di\Aop\ProceedingJoinPoint;
 use Hyperf\HttpServer\Annotation\Controller;
 use Hyperf\HttpServer\Annotation\GetMapping;
 use Hyperf\HttpServer\Annotation\PostMapping;
@@ -23,11 +23,12 @@ use Hyperf\RateLimit\Annotation\RateLimit;
 /**
  * Class UserController
  * @Controller(prefix="user")
- * @RateLimit(limitCallback={UserController::class, "limitCallback"})
  */
 class UserController extends BasicController
 {
     /**
+     * 利用微信code登陆系统
+     * @ParamsAnnotation(rules={"code":"required|string"}, attributes={"code":"微信登陆码"})
      * @PostMapping(path="login")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
@@ -38,9 +39,6 @@ class UserController extends BasicController
     {
         $msg = '登陆失败!';
         $code = $this->request->post('code', '');
-        if (empty($code)){
-            return $this->formatResponse(1, [], $msg.'code为空');
-        }
         $apiResult = $this->miniProgram->auth->session($code);
         if (!empty($apiResult) && empty($apiResult['errcode'])){//登陆成功
             $openid = $apiResult['openid'] ?? '';
@@ -71,6 +69,7 @@ class UserController extends BasicController
     
     /**
      * 保存用户的开放信息
+     * @ParamsAnnotation(rules={"userInfo":"required|array"}, attributes={"userInfo":"用户信息"})
      * @PostMapping(path="info")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
@@ -80,9 +79,6 @@ class UserController extends BasicController
     public function info()
     {
         $userInfo = $this->request->post('userInfo', []);
-        if (empty($userInfo)){
-            return $this->formatResponse(1, [], '用户信息为空');
-        }
         $user = $this->getUser();
         $user->avatar_url = $userInfo['avatarUrl'];
         $user->city = $userInfo['city'];
@@ -162,6 +158,7 @@ class UserController extends BasicController
     
     /**
      * 安利美食
+     * @ParamsAnnotation(rules={"name":"required|string", "reason":"required|string", "image":"required|image"}, attributes={"name":"食物名字", "reason":"安利理由", "image":"美食主图" })
      * @PostMapping(path="anli")
      * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
      * @return array
@@ -174,16 +171,7 @@ class UserController extends BasicController
     {
         $documentRoot = $this->config->get('server.settings.document_root');
         $name = $this->request->post('name', '');
-        if (empty($name)){
-            return $this->formatResponse(1, [], '请输入推荐食物的名字!');
-        }
         $reason = $this->request->post('reason', '');
-        if (empty($reason)){
-            return $this->formatResponse(1, [], '请输入安利该食物的理由!');
-        }
-        if (!$this->request->hasFile('image')) {
-            return $this->formatResponse(1, [], '请上传主图!');
-        }
         $file = $this->request->file('image');
         if (!$file->isValid()) {
             return $this->formatResponse(1, [], '您上传的图片无效!');
@@ -221,12 +209,4 @@ class UserController extends BasicController
         return $this->formatResponse(0, [], '安利成功!');
     }
     
-    public static function limitCallback(float $seconds, ProceedingJoinPoint $proceedingJoinPoint)
-    {
-        // 记录触发限流了
-        // $seconds 下次生成Token 的间隔, 单位为秒
-        // $proceedingJoinPoint 此次请求执行的切入点
-        // 可以通过调用 `$proceedingJoinPoint->process()` 继续执行或者自行处理
-        return $proceedingJoinPoint->process();
-    }
 }
