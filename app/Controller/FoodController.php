@@ -61,7 +61,7 @@ class FoodController extends BasicController
     
     /**
      * 收藏食物信息
-     * @ParamsAnnotation(rules={"id":"required|numeric"}, attributes={"id":"食物id"})
+     * @ParamsAnnotation(rules={"id":"required|numeric|min:1"}, attributes={"id":"食物id"})
      * @PostMapping(path="collect")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -71,9 +71,6 @@ class FoodController extends BasicController
     public function collect()
     {
         $id = $this->request->post('id', 0);
-        if ($id == 0){
-            return $this->formatResponse(1, [], '你传入的数据有误!');
-        }
         //执行收藏的具体逻辑
         $user = $this->getUser();
         $collect = UserCollect::updateOrCreate(
@@ -88,7 +85,7 @@ class FoodController extends BasicController
     
     /**
      * 记录吃过的食物
-     * @ParamsAnnotation(rules={"id":"required|numeric", "type":"required|numeric|between:1,3"}, attributes={"id":"食物id", "type":"类型"})
+     * @ParamsAnnotation(rules={"id":"required|numeric|min:1", "type":"required|numeric|between:1,3"}, attributes={"id":"食物id", "type":"类型"})
      * @PostMapping(path="ate")
      * @RateLimit(create=10, capacity=30) 限流, 令牌生成每秒10个, 峰值每秒30次
      * @return array
@@ -99,12 +96,6 @@ class FoodController extends BasicController
     {
         $id = $this->request->post('id', 0);
         $type = $this->request->post('type', 0);
-        if ($id <= 0){
-            return $this->formatResponse(1, [], '你传入的id有误!');
-        }
-        if (!in_array($type,[1, 2, 3]) ){
-            return $this->formatResponse(1, [], '你传入的类型有误!');
-        }
         //执行收藏的具体逻辑
         $user = $this->getUser();
         $ate = UserAte::create(

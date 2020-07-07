@@ -19,6 +19,7 @@ use Hyperf\ModelCache\Cacheable;
  * @property \Carbon\Carbon $updated_at 
  * @property string $openid 
  * @property string $unionid 
+ * @property string $access_token
  * @property Builder $userCollect
  * @property Builder $userAte
  */
