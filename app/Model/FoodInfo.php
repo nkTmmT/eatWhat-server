@@ -1,23 +1,26 @@
 <?php
 
 declare (strict_types=1);
+
 namespace App\Model;
 
 use Hyperf\DbConnection\Model\Model;
 use Hyperf\ModelCache\Cacheable;
 
 /**
- * @property int $id 
- * @property string $name 
- * @property string $reason 
- * @property string $image 
- * @property int $reference_id 
- * @property \Carbon\Carbon $created_at 
- * @property \Carbon\Carbon $updated_at 
+ * @property int $id
+ * @property string $name
+ * @property string $reason
+ * @property string $image
+ * @property int $reference_id
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
  */
 class FoodInfo extends Model
 {
     use Cacheable;
+    const TABLE = 'food_info';
+    
     /**
      * The table associated with the model.
      *

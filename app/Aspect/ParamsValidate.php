@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Aspect;
 
-use App\annotation\ParamsAnnotation;
+use App\Annotation\ParamsAnnotation;
 use Hyperf\Di\Annotation\Aspect;
 use Hyperf\Di\Aop\AbstractAspect;
 use Hyperf\HttpServer\Contract\RequestInterface;
@@ -14,6 +14,7 @@ use Psr\Container\ContainerInterface;
 use Hyperf\Di\Aop\ProceedingJoinPoint;
 
 /**
+ * 基于aop的api参数验证
  * @Aspect
  */
 class ParamsValidate extends AbstractAspect
@@ -51,7 +52,7 @@ class ParamsValidate extends AbstractAspect
         $this->response = $container->get(ResponseInterface::class);
         $this->validationFactory = $container->get(ValidatorFactoryInterface::class);
     }
-
+    
     public function process(ProceedingJoinPoint $proceedingJoinPoint)
     {
         $paramsAnnotation = $proceedingJoinPoint->getAnnotationMetadata()->method[ParamsAnnotation::class];
@@ -61,9 +62,9 @@ class ParamsValidate extends AbstractAspect
         $rules = $paramsAnnotation->rules;
         $messages = $paramsAnnotation->messages ?? [];
         $attributes = $paramsAnnotation->attributes ?? [];
-        $validator = $this->validationFactory->make($this->request->post(), $rules, $messages, $attributes);
-        if ($validator->fails()){//自定义错误返回,如需抛异常处理可用validate方法
-            return $this->response->json(['code'=>1, 'data'=>[], 'msg' => $validator->errors()->first() ]);
+        $validator = $this->validationFactory->make($this->request->all(), $rules, $messages, $attributes);
+        if ($validator->fails()) {//自定义错误返回,如需抛异常处理可用validate方法
+            return $this->response->json(['code' => 1, 'data' => [], 'msg' => $validator->errors()->first()]);
         }
         return $proceedingJoinPoint->process();
     }

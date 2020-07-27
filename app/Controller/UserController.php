@@ -9,7 +9,9 @@
 
 namespace App\Controller;
 
-use App\annotation\ParamsAnnotation;
+use App\Annotation\ParamsAnnotation;
+use App\Constants\RedisKey;
+use App\Constants\TimeToLive;
 use App\Model\FoodInfo;
 use App\Model\User;
 use App\Model\UserAnli;
@@ -57,18 +59,19 @@ class UserController extends BasicController
                 return $this->formatResponse(1, [], $msg . '数据库保存数据出错!');
             }
             if (!empty($oldToken)) {
-                $this->cache->delete($oldToken);//删除旧的token缓存
+                $this->cache->delete(RedisKey::USER_TOKEN.$oldToken);//删除旧的token缓存
             }
-            $this->cache->set($accessToken, array_merge($apiResult, ['user_id' => $user->id]), 24 * 60 * 60);//增加新的token缓存
+            $this->cache->set(RedisKey::USER_TOKEN.$accessToken, array_merge($apiResult, ['user_id' => $user->id]), TimeToLive::DAY);//增加新的token缓存
             $result = [
                 'accessToken' => $accessToken,
-                'hasInfo' => !empty($user->username) ? true : false
+                'hasInfo' => $user->hasInfo(),
+                'isAdmin' => $user->isAdmin()
             ];
-            return $this->formatResponse(0, $result, '登陆成功!');
+            return $this->success($result);
         } else {
             $msg = $apiResult['errmsg'];
         }
-        return $this->formatResponse(1, [], $msg);
+        return $this->fail(1, $msg);
     }
     
     /**
@@ -93,7 +96,7 @@ class UserController extends BasicController
         if (!empty($user->getDirty()) && !$user->save()) { //如果字段没有修改则不需要更新
             return $this->formatResponse(1, [], '数据库保存数据出错!');
         }
-        return $this->formatResponse(0, [], '用户信息保存成功!');
+        return $this->success();
     }
     
     /**
@@ -125,7 +128,7 @@ class UserController extends BasicController
                 'collect' => true
             ];
         }
-        return $this->formatResponse(0, $result, '获取成功!');
+        return $this->success($result);
     }
     
     /**
@@ -157,12 +160,12 @@ class UserController extends BasicController
                 'collect' => $item->isCollect()
             ];
         }
-        return $this->formatResponse(0, $result, '获取成功!');
+        return $this->success($result);
     }
     
     /**
      * 安利美食
-     * @ParamsAnnotation(rules={"name":"required|string", "reason":"required|string", "image":"required|image"}, attributes={"name":"食物名字", "reason":"安利理由", "image":"美食主图" })
+     * @ParamsAnnotation(rules={"name":"required|string", "reason":"required|string"}, attributes={"name":"食物名字", "reason":"安利理由"})
      * @PostMapping(path="anli")
      * @RateLimit(create=1, capacity=3) 限流, 令牌生成每秒1个, 峰值每秒3次
      * @return array
@@ -176,21 +179,24 @@ class UserController extends BasicController
         $documentRoot = $this->config->get('server.settings.document_root');
         $name = $this->request->post('name', '');
         $reason = $this->request->post('reason', '');
+        if (!$this->request->hasFile('image')){
+            return $this->fail(1, '请上传美食主图!');
+        }
         $file = $this->request->file('image');
         if (!$file->isValid()) {
-            return $this->formatResponse(1, [], '您上传的图片无效!');
+            return $this->fail(1, '您上传的图片无效!');
         }
         $user = $this->getUser();
-        if (empty($user->username)) {
-            return $this->formatResponse(1, [], '您没有权限!');
+        if (!$user->hasInfo()) {
+            return $this->fail(1, '您没有权限!');
         }
         $textResult = $this->miniProgram->content_security->checkText($name . '----' . $reason);//文本安全内容检测
         if (!empty($textResult['errcode'])) {//说明验证失败了
-            return $this->formatResponse(1, [], '您上传的文字内容包含未允许信息!');
+            return $this->fail(1, '您上传的文字内容包含未允许信息!');
         }
         $imageResult = $this->miniProgram->content_security->checkImage($file->getRealPath()); //图片安全内容检测
         if (!empty($imageResult['errcode'])) {//说明验证失败了
-            return $this->formatResponse(1, [], '您上传的图片包含敏感信息!');
+            return $this->fail(1, '您上传的图片包含敏感信息!');
         }
         $fileName = $file->getBasename();//临时原文件名
         $extension = $file->getExtension();//原文件名的后缀名
@@ -199,7 +205,7 @@ class UserController extends BasicController
         $file->moveTo($path);//保存到服务器地址
         // 通过 isMoved(): bool 方法判断方法是否已移动
         if (!$file->isMoved()) {//保存文件出错,记录日志,linux常见问题为文件读写权限不够
-            return $this->formatResponse(1, [], '安利失败!');
+            return $this->fail(1, '安利失败!');
         }
         $image = str_replace(DIRECTORY_SEPARATOR, '/', $url);
         $anli = new UserAnli();
@@ -208,9 +214,9 @@ class UserController extends BasicController
         $anli->image = $image;
         $anli->reference_id = $user->id;
         if (!$anli->save()) {//保存数据库出错,记录日志
-            return $this->formatResponse(1, [], '安利失败!');
+            return $this->fail(1, '安利失败!');
         }
-        return $this->formatResponse(0, [], '安利成功!');
+        return $this->success();
     }
     
 }

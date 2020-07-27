@@ -9,8 +9,9 @@
 
 namespace App\Controller;
 
-use App\annotation\ParamsAnnotation;
+use App\Annotation\ParamsAnnotation;
 use App\Constants\RedisKey;
+use App\Constants\TimeToLive;
 use App\Model\FoodInfo;
 use App\Model\UserAte;
 use App\Model\UserCollect;
@@ -35,28 +36,29 @@ class FoodController extends BasicController
      * @throws \Exception
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function food(ConfigInterface $config){
+    public function food(ConfigInterface $config)
+    {
         $foodTotalNum = $this->cache->get(RedisKey::FOOD_NUM, 0);
-        if (empty($foodTotalNum)){
+        if (empty($foodTotalNum)) {
             $foodTotalNum = FoodInfo::query()->count();
-            $this->cache->set(RedisKey::FOOD_NUM, $foodTotalNum);
+            $this->cache->set(RedisKey::FOOD_NUM, $foodTotalNum, TimeToLive::DAY);
         }
-        if ($foodTotalNum < 1){
-            return $this->formatResponse(1, [], '获取失败!');
+        if ($foodTotalNum < 1) {
+            return $this->fail(1, '获取失败!');
         }
-        $index = random_int(1 , $foodTotalNum);
+        $index = random_int(1, $foodTotalNum);
         /**
          * @var $food FoodInfo
          */
         $food = FoodInfo::findFromCache($index);
-        $urlPrefix = 'https://'.$this->request->header('host', $config->get('host'));
+        $urlPrefix = 'https://' . $this->request->header('host', $config->get('host'));
         $data = [
             'id' => $food->id,
-            'name'=> $food->name,
+            'name' => $food->name,
             'reason' => $food->reason,
-            'image' => stristr($food->image, 'http') ? $food->image : $urlPrefix.$food->image //如果是网络图片则不添加请求头,否则加请求头
+            'image' => stristr($food->image, 'http') ? $food->image : $urlPrefix . $food->image //如果是网络图片则不添加请求头,否则加请求头
         ];
-        return $this->formatResponse(0, $data, '获取成功!');
+        return $this->success($data);
     }
     
     /**
@@ -77,10 +79,10 @@ class FoodController extends BasicController
             ['user_id' => $user->id, 'food_id' => $id],
             ['updated_at' => date('Y-m-d H:i:s')]
         );
-        if (!$collect){//出错记录日志
+        if (!$collect) {//出错记录日志
         
         }
-        return $this->formatResponse(0, [], '收藏成功!');
+        return $this->success();
     }
     
     /**
@@ -101,9 +103,9 @@ class FoodController extends BasicController
         $ate = UserAte::create(
             ['user_id' => $user->id, 'food_id' => $id, 'type' => $type]
         );
-        if (!$ate){//出错记录日志
+        if (!$ate) {//出错记录日志
         
         }
-        return $this->formatResponse(0, [], '记录吃过的食物成功!');
+        return $this->success();
     }
 }

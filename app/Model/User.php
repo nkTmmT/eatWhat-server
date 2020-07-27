@@ -1,6 +1,7 @@
 <?php
 
 declare (strict_types=1);
+
 namespace App\Model;
 
 use Hyperf\Database\Model\Builder;
@@ -8,17 +9,17 @@ use Hyperf\DbConnection\Model\Model;
 use Hyperf\ModelCache\Cacheable;
 
 /**
- * @property int $id 
- * @property string $username 
- * @property string $avatar_url 
- * @property string $gender 
- * @property string $province 
- * @property string $city 
- * @property string $country 
- * @property \Carbon\Carbon $created_at 
- * @property \Carbon\Carbon $updated_at 
- * @property string $openid 
- * @property string $unionid 
+ * @property int $id
+ * @property string $username
+ * @property string $avatar_url
+ * @property string $gender
+ * @property string $province
+ * @property string $city
+ * @property string $country
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property string $openid
+ * @property string $unionid
  * @property string $access_token
  * @property Builder $userCollect
  * @property Builder $userAte
@@ -67,5 +68,23 @@ class User extends Model
     public function userAte()
     {
         return $this->hasMany(UserAte::class, 'user_id', 'id');
+    }
+    
+    /**
+     * 是否已登录
+     * @return bool
+     */
+    public function hasInfo()
+    {
+        return !empty($this->username);
+    }
+    
+    /**
+     * 是否是管理人员的账号 (已登录且被设置为管理员)
+     * @return bool
+     */
+    public function isAdmin()
+    {
+        return $this->hasInfo() && Admin::query()->where('user_id', '=', $this->id)->exists();
     }
 }

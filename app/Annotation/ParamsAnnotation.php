@@ -7,14 +7,14 @@
  * Github: https://github.com/nkTmmT
  */
 
-namespace App\annotation;
+namespace App\Annotation;
 
 
 use Doctrine\Common\Annotations\Annotation\Target;
 use Hyperf\Di\Annotation\AbstractAnnotation;
 
 /**
- * 用于接口请求参数校验
+ * 用于接口请求参数校验的声明
  * @Annotation()
  * @Target("METHOD")
  */

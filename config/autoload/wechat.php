@@ -15,7 +15,7 @@ return [
         'secret' => $appSecret,
         'log' => [
             'level' => 'debug',
-            'file' => __DIR__.'/../../runtime/log/wechat.log',
+            'file' => BASE_PATH . '/runtime/logs/wechat.log',
         ],
     ]
 ];

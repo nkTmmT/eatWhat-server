@@ -13,4 +13,5 @@ namespace App\Constants;
 class RedisKey
 {
     const FOOD_NUM = 'food_info_count';
+    const USER_TOKEN = 'user_access_token:';
 }

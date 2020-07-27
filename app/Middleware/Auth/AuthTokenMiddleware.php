@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware\Auth;
 
+use App\Constants\RedisKey;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
@@ -50,33 +51,33 @@ class AuthTokenMiddleware implements MiddlewareInterface
         '/user/login',
         '/'
     ];
-
+    
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
     }
-
+    
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $pathInfo = $this->request->getPathInfo();
-        if (in_array($pathInfo, $this->exceptRoute)){
+        if (in_array($pathInfo, $this->exceptRoute)) {
             return $handler->handle($request);
         }
         $accessToken = $this->request->query('access_token', '');
-        if (empty($accessToken)){
+        if (empty($accessToken)) {
             return $this->response->json(
                 [
-                    'code' => 1,
+                    'code' => 99,
                     'data' => [],
                     'msg' => 'token为空',
                 ]
             );
         }
-        $flag = $this->cache->has($accessToken);
-        if (!$flag){
+        $flag = $this->cache->has(RedisKey::USER_TOKEN . $accessToken);
+        if (!$flag) {
             return $this->response->json(
                 [
-                    'code' => 1,
+                    'code' => 100,
                     'data' => [],
                     'msg' => 'token验证不通过',
                 ]
